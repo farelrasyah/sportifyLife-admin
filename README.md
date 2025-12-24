@@ -1,36 +1,229 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏋️ SportifyLife Admin Dashboard
 
-## Getting Started
+Modern and elegant admin dashboard for managing the SportifyLife fitness application. Built with Next.js 15, TypeScript, and shadcn/ui.
 
-First, run the development server:
+## ✨ Features
 
+- 🔐 **Authentication System** - Secure JWT-based authentication with refresh tokens
+- 💪 **Exercise Management** - Complete CRUD operations for exercises with seeding functionality
+- 🏃 **Workout Management** - Create and manage workout templates
+- 👥 **User Management** - Monitor and manage user accounts
+- 📊 **Analytics Dashboard** - Real-time insights and performance metrics
+- 🎨 **Modern UI** - Beautiful, responsive design with shadcn/ui components
+- 🔄 **Real-time Updates** - Live data synchronization
+- 📱 **Fully Responsive** - Works perfectly on all devices
+
+## 🚀 Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **State Management**: Zustand
+- **Data Fetching**: TanStack Query (React Query)
+- **Forms**: React Hook Form + Zod
+- **Tables**: TanStack Table (React Table)
+- **HTTP Client**: Axios
+- **Icons**: Lucide React
+
+## 📦 Installation
+
+1. **Clone the repository**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd sportifylife-admin
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Install dependencies**
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Setup environment variables**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env.local` file in the root directory:
 
-## Learn More
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
+NEXT_PUBLIC_APP_NAME=SportifyLife Admin
+NEXT_PUBLIC_APP_VERSION=1.0.0
+JWT_SECRET=your-jwt-secret-key
+REFRESH_TOKEN_SECRET=your-refresh-token-secret-key
+```
 
-To learn more about Next.js, take a look at the following resources:
+4. **Run development server**
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🏗️ Project Structure
 
-## Deploy on Vercel
+```
+sportifylife-admin/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   │   └── page.tsx          # Login page
+│   │   └── layout.tsx
+│   ├── (dashboard)/
+│   │   ├── layout.tsx            # Dashboard layout with sidebar
+│   │   ├── page.tsx              # Dashboard overview
+│   │   ├── exercises/
+│   │   │   └── page.tsx          # Exercise management
+│   │   ├── workouts/
+│   │   │   └── page.tsx          # Workout management
+│   │   ├── users/
+│   │   │   └── page.tsx          # User management
+│   │   └── analytics/
+│   │       └── page.tsx          # Analytics dashboard
+│   ├── globals.css
+│   └── layout.tsx
+├── components/
+│   ├── ui/                        # shadcn/ui components
+│   ├── layout/
+│   │   ├── sidebar.tsx
+│   │   ├── header.tsx
+│   │   └── breadcrumb.tsx
+│   └── common/
+│       ├── data-table.tsx
+│       ├── loading-spinner.tsx
+│       └── empty-state.tsx
+├── lib/
+│   ├── api/                       # API client and endpoints
+│   │   ├── client.ts
+│   │   ├── auth.ts
+│   │   ├── exercises.ts
+│   │   ├── workouts.ts
+│   │   ├── users.ts
+│   │   ├── analytics.ts
+│   │   ├── notifications.ts
+│   │   └── audit-logs.ts
+│   ├── stores/
+│   │   └── auth-store.ts         # Zustand authentication store
+│   ├── config/
+│   │   └── constants.ts          # App constants and configs
+│   └── utils.ts                  # Utility functions
+├── types/
+│   ├── index.ts                  # Main type definitions
+│   └── api.ts                    # API response types
+├── middleware.ts                 # Route protection middleware
+└── README.md
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔑 Authentication
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The dashboard uses JWT-based authentication with the following features:
+
+- Secure login with email and password
+- Automatic token refresh
+- Protected routes via middleware
+- Persistent authentication state with Zustand
+
+### Demo Credentials
+
+```
+Email: admin@sportifylife.com
+Password: admin123
+```
+
+## 📱 Pages
+
+### Dashboard Overview
+- Real-time statistics and metrics
+- Quick action buttons
+- Recent activity feed
+- System status indicators
+
+### Exercise Management
+- Browse and search exercises
+- Filter by body part, equipment, and difficulty
+- View detailed exercise information
+- Seed exercises from external API
+- Export exercise data
+
+### Workout Management
+- Create custom workout templates
+- Edit and delete workouts
+- Organize exercises with sets, reps, and rest periods
+- Categorize workouts by difficulty and type
+
+### User Management
+- View all registered users
+- Filter users by role and status
+- Monitor user activity
+- Manage user permissions
+- Export user data
+
+### Analytics
+- User growth trends
+- Workout completion rates
+- Exercise popularity metrics
+- Engagement statistics
+- Interactive charts and visualizations
+
+## 🎨 UI Components
+
+All UI components are built with shadcn/ui for a consistent, modern design:
+
+- Buttons, inputs, and forms
+- Data tables with sorting and pagination
+- Modal dialogs and dropdowns
+- Cards and badges
+- Avatars and tabs
+- Toast notifications
+- Loading states and skeletons
+
+## 🔧 Development
+
+### Build for production
+```bash
+npm run build
+```
+
+### Start production server
+```bash
+npm start
+```
+
+### Run linter
+```bash
+npm run lint
+```
+
+### Type checking
+```bash
+npm run type-check
+```
+
+## 🌐 API Integration
+
+The dashboard integrates with a NestJS backend API. All API endpoints are configured in `lib/config/constants.ts`.
+
+### API Base URL
+Default: `http://localhost:3001/api`
+
+Configure via `NEXT_PUBLIC_API_BASE_URL` environment variable.
+
+### API Endpoints
+
+- **Auth**: `/auth/login`, `/auth/refresh`, `/auth/logout`
+- **Exercises**: `/admin/exercises`, `/admin/exercises/:id`, `/admin/exercises/seed`
+- **Workouts**: `/admin/workouts`, `/admin/workouts/:id`
+- **Users**: `/admin/users`, `/admin/users/:id`
+- **Analytics**: `/admin/analytics/overview`, `/admin/analytics/charts`
+- **Notifications**: `/admin/notifications`
+- **Audit Logs**: `/admin/audit-logs`
+
+## 📝 License
+
+© 2025 SportifyLife. All rights reserved.
+
+## 👨‍💻 Author
+
+Built with ❤️ by the SportifyLife team
+
+---
+
+**Note**: This is an admin-only dashboard. Regular users should access the mobile application.
