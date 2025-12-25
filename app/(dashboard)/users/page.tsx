@@ -32,6 +32,8 @@ const USER_ROLES = ['all', 'user', 'admin']
 const USER_STATUSES = ['all', 'active', 'inactive']
 
 export default function UsersPage() {
+  console.log('🚀 UsersPage component rendered')
+
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [limit] = useState(10)
@@ -44,23 +46,48 @@ export default function UsersPage() {
   // Fetch users
   const { data: usersData, isLoading, error, refetch } = useQuery({
     queryKey: ['users', page, limit, search, role, status],
-    queryFn: () => usersApi.getUsers({
-      page,
-      limit,
-      search: search || undefined,
-      role: role && role !== 'all' ? role : undefined,
-      status: status && status !== 'all' ? status : undefined,
-    }),
+    queryFn: async () => {
+      console.log('🔍 Fetching users with params:', {
+        page,
+        limit,
+        search: search || undefined,
+        role: role && role !== 'all' ? role : undefined,
+        status: status && status !== 'all' ? status : undefined,
+      })
+      
+      try {
+        const result = await usersApi.getUsers({
+          page,
+          limit,
+          search: search || undefined,
+          role: role && role !== 'all' ? role : undefined,
+          status: status && status !== 'all' ? status : undefined,
+        })
+        
+        console.log('✅ Users API response:', result)
+        console.log('📊 Users data:', result.data)
+        console.log('👥 Users array:', result.data?.data?.users)
+        console.log('📄 Pagination:', result.data?.data?.pagination)
+        
+        return result
+      } catch (error) {
+        console.error('❌ Failed to fetch users:', error)
+        throw error
+      }
+    },
     retry: 1,
   })
 
   // Fetch user stats when viewing details
   const fetchUserStats = async (userId: string) => {
     try {
+      console.log('📊 Fetching stats for user:', userId)
       const response = await usersApi.getUserStats(userId)
+      console.log('✅ User stats response:', response)
       setUserStats(response.data)
     } catch (error) {
-      console.error('Failed to fetch user stats:', error)
+      console.error('❌ Failed to fetch user stats:', error)
+      toast.error('Failed to load user statistics')
     }
   }
 
@@ -70,12 +97,21 @@ export default function UsersPage() {
   }
 
   const handleViewUser = (user: any) => {
+    console.log('👤 Viewing user details:', user)
     setSelectedUser(user)
     fetchUserStats(user.id)
   }
 
-  const users = usersData?.data?.users || []
-  const pagination = usersData?.data?.pagination
+  const users = usersData?.data?.data?.users || []
+  const pagination = usersData?.data?.data?.pagination
+
+  console.log('📋 Current users state:', {
+    usersCount: users.length,
+    pagination,
+    isLoading,
+    error: error?.message || error,
+    usersData
+  })
 
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName && !lastName) return 'U'
@@ -207,7 +243,23 @@ export default function UsersPage() {
           {error ? (
             <Alert variant="destructive">
               <AlertDescription>
-                Failed to load users. Please check your backend connection.
+                <div className="space-y-2">
+                  <p className="font-semibold">Failed to load users</p>
+                  <p className="text-sm">
+                    Error: {error?.message || 'Unknown error occurred'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Check the browser console for more details. Make sure the backend server is running on http://localhost:3001
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => refetch()}
+                    className="mt-2"
+                  >
+                    Try Again
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           ) : isLoading ? (
@@ -220,9 +272,17 @@ export default function UsersPage() {
             <div className="text-center py-12">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No users found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your filters
+              <p className="text-muted-foreground mb-4">
+                {search || role !== 'all' || status !== 'all' 
+                  ? 'Try adjusting your filters or search terms'
+                  : 'No users have been registered yet'
+                }
               </p>
+              <div className="text-sm text-muted-foreground">
+                <p>Debug info:</p>
+                <p>Search: "{search}" | Role: {role} | Status: {status}</p>
+                <p>Data received: {usersData ? 'Yes' : 'No'}</p>
+              </div>
             </div>
           ) : (
             <>
