@@ -40,8 +40,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const LEVELS = ['beginner', 'intermediate', 'advanced']
-const CATEGORIES = ['fullbody', 'upper', 'lower', 'abs', 'cardio', 'flexibility']
+const LEVELS = ['beginner', 'intermediate', 'advanced'] as const
+const CATEGORIES = ['fullbody', 'upper', 'lower', 'abs', 'cardio', 'flexibility'] as const
+
+type WorkoutLevel = typeof LEVELS[number]
+type WorkoutCategory = typeof CATEGORIES[number]
 
 export default function WorkoutsPage() {
   const queryClient = useQueryClient()
@@ -55,7 +58,20 @@ export default function WorkoutsPage() {
   const [deleteWorkoutId, setDeleteWorkoutId] = useState<string | null>(null)
   
   // Form state
-  const [formData, setFormData] = useState<CreateWorkoutDTO>({
+  const [formData, setFormData] = useState<{
+    name: string
+    description: string
+    level: WorkoutLevel
+    category: WorkoutCategory
+    exercises: Array<{
+      exerciseId: string
+      order: number
+      sets?: number
+      reps?: number
+      durationSeconds?: number
+      restSeconds?: number
+    }>
+  }>({
     name: '',
     description: '',
     level: 'beginner',
@@ -135,7 +151,7 @@ export default function WorkoutsPage() {
       name: '',
       description: '',
       level: 'beginner',
-      category: 'strength',
+      category: 'fullbody',
       exercises: []
     })
     console.log('✅ Form reset completed')
@@ -171,7 +187,7 @@ export default function WorkoutsPage() {
         exerciseId,
         order: prev.exercises.length + 1,
         sets: 3,
-        reps: '10-12',
+        reps: 10,
         restSeconds: 60
       }]
       console.log('📝 Updated exercises array:', newExercises)
@@ -305,7 +321,7 @@ export default function WorkoutsPage() {
                         <Label htmlFor="level">Difficulty Level</Label>
                         <Select 
                           value={formData.level} 
-                          onValueChange={(value: any) => setFormData(prev => ({ ...prev, level: value }))}
+                          onValueChange={(value: WorkoutLevel) => setFormData(prev => ({ ...prev, level: value }))}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -323,7 +339,7 @@ export default function WorkoutsPage() {
                         <Label htmlFor="category">Category</Label>
                         <Select 
                           value={formData.category} 
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                          onValueChange={(value: WorkoutCategory) => setFormData(prev => ({ ...prev, category: value }))}
                         >
                           <SelectTrigger>
                             <SelectValue />

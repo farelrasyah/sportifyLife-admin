@@ -40,11 +40,53 @@ export interface CreateWorkoutDTO {
   exercises: Array<{
     exerciseId: string
     order: number
-    sets: number
-    reps?: string
+    sets?: number
+    reps?: string | number
     durationSeconds?: number
-    restSeconds: number
+    restSeconds?: number
   }>
+}
+
+export const sanitizeCreateWorkoutPayload = (data: CreateWorkoutDTO): any => {
+  const sanitized = {
+    name: data.name,
+    description: data.description,
+    level: data.level.toLowerCase(),
+    category: data.category.toLowerCase(),
+    exercises: data.exercises.map(exercise => {
+      const sanitizedExercise: any = {
+        exerciseId: exercise.exerciseId,
+        order: Number(exercise.order),
+      }
+
+      // Only include optional fields if they are defined and valid
+      if (exercise.sets !== undefined && exercise.sets !== null && exercise.sets >= 1) {
+        sanitizedExercise.sets = Number(exercise.sets)
+      }
+
+      if (exercise.reps !== undefined && exercise.reps !== null) {
+        // If reps is string, try to parse it (e.g., '10-12' -> 10)
+        const repsValue = typeof exercise.reps === 'string' 
+          ? parseInt(exercise.reps.split('-')[0]) || parseInt(exercise.reps) 
+          : Number(exercise.reps)
+        if (repsValue >= 1) {
+          sanitizedExercise.reps = repsValue
+        }
+      }
+
+      if (exercise.durationSeconds !== undefined && exercise.durationSeconds !== null && exercise.durationSeconds >= 1) {
+        sanitizedExercise.durationSeconds = Number(exercise.durationSeconds)
+      }
+
+      if (exercise.restSeconds !== undefined && exercise.restSeconds !== null && exercise.restSeconds >= 0) {
+        sanitizedExercise.restSeconds = Number(exercise.restSeconds)
+      }
+
+      return sanitizedExercise
+    })
+  }
+
+  return sanitized
 }
 
 export const workoutsApi = {
@@ -70,9 +112,11 @@ export const workoutsApi = {
   },
 
   createWorkout: async (data: CreateWorkoutDTO) => {
+    const sanitizedData = sanitizeCreateWorkoutPayload(data)
+    console.log('📤 Sanitized payload being sent to API:', JSON.stringify(sanitizedData, null, 2))
     const response = await apiClient.post(
       API_ENDPOINTS.WORKOUT_CREATE,
-      data
+      sanitizedData
     )
     return response.data
   },
