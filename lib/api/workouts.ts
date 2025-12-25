@@ -1,24 +1,50 @@
 import { apiClient } from './client'
 import { API_ENDPOINTS } from '@/lib/config/constants'
-import type { Workout, WorkoutFilters } from '@/types'
 import type { PaginatedResponse } from '@/types/api'
+
+export interface Workout {
+  id: string
+  name: string
+  level: 'beginner' | 'intermediate' | 'advanced'
+  category: string
+  description: string
+  exercises: WorkoutExercise[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface WorkoutExercise {
+  id: string
+  exerciseId: string
+  exerciseName?: string
+  order: number
+  sets: number
+  reps?: string
+  durationSeconds?: number
+  restSeconds: number
+}
+
+export interface WorkoutFilters {
+  page?: number
+  limit?: number
+  search?: string
+  level?: string
+  category?: string
+}
 
 export interface CreateWorkoutDTO {
   name: string
   description: string
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  duration: number
+  level: 'beginner' | 'intermediate' | 'advanced'
+  category: string
   exercises: Array<{
     exerciseId: string
-    sets: number
-    reps: string
-    rest: number
-    notes?: string
     order: number
+    sets: number
+    reps?: string
+    durationSeconds?: number
+    restSeconds: number
   }>
-  category?: string
-  tags?: string[]
-  imageUrl?: string
 }
 
 export const workoutsApi = {
@@ -27,24 +53,24 @@ export const workoutsApi = {
     if (filters?.page) params.append('page', filters.page.toString())
     if (filters?.limit) params.append('limit', filters.limit.toString())
     if (filters?.search) params.append('search', filters.search)
-    if (filters?.difficulty) params.append('difficulty', filters.difficulty)
+    if (filters?.level) params.append('level', filters.level)
     if (filters?.category) params.append('category', filters.category)
 
-    const response = await apiClient.get<PaginatedResponse<Workout>>(
+    const response = await apiClient.get(
       `${API_ENDPOINTS.WORKOUTS}?${params.toString()}`
     )
     return response.data
   },
 
   getWorkout: async (id: string) => {
-    const response = await apiClient.get<Workout>(
+    const response = await apiClient.get(
       API_ENDPOINTS.WORKOUT_DETAIL(id)
     )
     return response.data
   },
 
   createWorkout: async (data: CreateWorkoutDTO) => {
-    const response = await apiClient.post<Workout>(
+    const response = await apiClient.post(
       API_ENDPOINTS.WORKOUT_CREATE,
       data
     )
@@ -52,7 +78,7 @@ export const workoutsApi = {
   },
 
   updateWorkout: async (id: string, data: Partial<CreateWorkoutDTO>) => {
-    const response = await apiClient.put<Workout>(
+    const response = await apiClient.put(
       API_ENDPOINTS.WORKOUT_UPDATE(id),
       data
     )
