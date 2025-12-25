@@ -94,6 +94,12 @@ export default function ExercisesPage() {
   const pagination = exercisesData?.data?.data?.pagination
   const stats = statsData?.data?.data
 
+  // Debug logging
+  console.log('🔍 Exercises data structure:', exercisesData)
+  console.log('📊 Exercises array:', exercises)
+  console.log('📄 Pagination:', pagination)
+  console.log('📈 Stats:', stats)
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
