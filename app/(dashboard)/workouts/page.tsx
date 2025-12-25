@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { workoutsApi, type CreateWorkoutDTO } from '@/lib/api/workouts'
 import { exercisesApi } from '@/lib/api/exercises'
@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 const LEVELS = ['beginner', 'intermediate', 'advanced']
-const CATEGORIES = ['strength', 'cardio', 'flexibility', 'balance', 'mixed']
+const CATEGORIES = ['fullbody', 'upper', 'lower', 'abs', 'cardio', 'flexibility']
 
 export default function WorkoutsPage() {
   const queryClient = useQueryClient()
@@ -59,10 +59,17 @@ export default function WorkoutsPage() {
     name: '',
     description: '',
     level: 'beginner',
-    category: 'strength',
+    category: 'fullbody',
     exercises: []
   })
-  
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔄 WorkoutsPage component rendered/updated')
+    console.log('📊 Current formData:', formData)
+    console.log('📋 Create dialog open:', createDialogOpen)
+  })
+
   // Fetch workouts
   const { data: workoutsData, isLoading, error, refetch } = useQuery({
     queryKey: ['workouts', page, limit, search, level, category],
@@ -85,14 +92,21 @@ export default function WorkoutsPage() {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data: CreateWorkoutDTO) => workoutsApi.createWorkout(data),
-    onSuccess: () => {
+    mutationFn: (data: CreateWorkoutDTO) => {
+      console.log('📤 Calling workoutsApi.createWorkout with data:', data)
+      return workoutsApi.createWorkout(data)
+    },
+    onSuccess: (response) => {
+      console.log('✅ Workout created successfully! Response:', response)
       toast.success('Workout created successfully!')
       setCreateDialogOpen(false)
       resetForm()
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
     },
     onError: (error: any) => {
+      console.log('❌ Failed to create workout. Error:', error)
+      console.log('❌ Error message:', error.message)
+      console.log('❌ Error response:', error.response?.data)
       toast.error(error.message || 'Failed to create workout')
     },
   })
@@ -116,6 +130,7 @@ export default function WorkoutsPage() {
   }
 
   const resetForm = () => {
+    console.log('🔄 Resetting workout form')
     setFormData({
       name: '',
       description: '',
@@ -123,46 +138,74 @@ export default function WorkoutsPage() {
       category: 'strength',
       exercises: []
     })
+    console.log('✅ Form reset completed')
   }
 
   const handleCreateWorkout = () => {
+    console.log('🚀 handleCreateWorkout called')
+    console.log('📋 Form data:', formData)
+    console.log('📊 Exercises count:', formData.exercises.length)
+
     if (!formData.name || !formData.description) {
+      console.log('❌ Validation failed: Missing name or description')
       toast.error('Please fill in all required fields')
       return
     }
     if (formData.exercises.length === 0) {
+      console.log('❌ Validation failed: No exercises added')
       toast.error('Please add at least one exercise')
       return
     }
+
+    console.log('✅ Validation passed, calling createMutation.mutate')
     createMutation.mutate(formData)
   }
 
   const addExercise = (exerciseId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      exercises: [...prev.exercises, {
+    console.log('➕ Adding exercise with ID:', exerciseId)
+    const exercise = availableExercises.find((ex: any) => ex.id === exerciseId)
+    console.log('📋 Exercise details:', exercise)
+
+    setFormData(prev => {
+      const newExercises = [...prev.exercises, {
         exerciseId,
         order: prev.exercises.length + 1,
         sets: 3,
         reps: '10-12',
         restSeconds: 60
       }]
-    }))
+      console.log('📝 Updated exercises array:', newExercises)
+      return {
+        ...prev,
+        exercises: newExercises
+      }
+    })
   }
 
   const removeExercise = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      exercises: prev.exercises.filter((_, i) => i !== index).map((ex, i) => ({
+    console.log('➖ Removing exercise at index:', index)
+    setFormData(prev => {
+      const newExercises = prev.exercises.filter((_, i) => i !== index).map((ex, i) => ({
         ...ex,
         order: i + 1
       }))
-    }))
+      console.log('📝 Updated exercises array after removal:', newExercises)
+      return {
+        ...prev,
+        exercises: newExercises
+      }
+    })
   }
 
-  const workouts = workoutsData?.data?.workouts || []
-  const pagination = workoutsData?.data?.pagination
-  const availableExercises = exercisesData?.data?.exercises || []
+  const workouts = workoutsData?.data?.data?.workouts || []
+  const pagination = workoutsData?.data?.data?.pagination
+  const availableExercises = exercisesData?.data?.data?.exercises || []
+
+  // Debug logging for data
+  console.log('📊 Workouts data:', workouts)
+  console.log('📄 Workouts pagination:', pagination)
+  console.log('🏋️ Available exercises:', availableExercises)
+  console.log('📈 Available exercises count:', availableExercises.length)
 
   return (
     <div className="space-y-6">
@@ -334,7 +377,7 @@ export default function WorkoutsPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Add exercise..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[200px] overflow-y-auto">
                           {availableExercises
                             .filter((ex: any) => !formData.exercises.find(e => e.exerciseId === ex.id))
                             .map((ex: any) => (
