@@ -90,9 +90,9 @@ export default function ExercisesPage() {
     seedMutation.mutate(limit)
   }
 
-  const exercises = exercisesData?.data?.exercises || []
-  const pagination = exercisesData?.data?.pagination
-  const stats = statsData?.data
+  const exercises = exercisesData?.data?.data?.exercises || []
+  const pagination = exercisesData?.data?.data?.pagination
+  const stats = statsData?.data?.data
 
   return (
     <div className="space-y-6">

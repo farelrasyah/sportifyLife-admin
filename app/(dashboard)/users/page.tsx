@@ -105,6 +105,17 @@ export default function UsersPage() {
   const users = usersData?.data?.data?.users || []
   const pagination = usersData?.data?.data?.pagination
 
+  // Debug: Log user structure to understand available fields
+  if (users.length > 0 && !isLoading) {
+    console.log('🔍 First user structure:', Object.keys(users[0]))
+    console.log('📋 First user data:', users[0])
+    console.log('✅ Available verification fields:', {
+      isVerified: users[0].isVerified,
+      isActive: users[0].isActive,
+      status: users[0].status
+    })
+  }
+
   console.log('📋 Current users state:', {
     usersCount: users.length,
     pagination,
@@ -157,7 +168,7 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatNumber(users.filter((u: any) => u.isVerified).length)}
+              {formatNumber(users.filter((u: any) => u.isVerified || u.isActive).length)}
             </div>
             <p className="text-xs text-muted-foreground">
               Email verified
@@ -325,7 +336,7 @@ export default function UsersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {user.isVerified ? (
+                          {(user.isVerified || user.isActive) ? (
                             <UserCheck className="h-4 w-4 text-green-600" />
                           ) : (
                             <UserX className="h-4 w-4 text-muted-foreground" />
@@ -410,7 +421,7 @@ export default function UsersPage() {
                     <Badge variant={selectedUser.status === 'active' ? 'default' : 'secondary'}>
                       {selectedUser.status}
                     </Badge>
-                    {selectedUser.isVerified && (
+                    {(selectedUser.isVerified || selectedUser.isActive) && (
                       <Badge variant="outline" className="text-green-600">
                         Verified
                       </Badge>
