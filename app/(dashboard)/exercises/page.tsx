@@ -99,6 +99,7 @@ export default function ExercisesPage() {
   console.log('📊 Exercises array:', exercises)
   console.log('📄 Pagination:', pagination)
   console.log('📈 Stats:', stats)
+  console.log('🔍 Raw statsData:', statsData)
 
   return (
     <div className="space-y-6">

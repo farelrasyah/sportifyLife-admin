@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { workoutsApi, type CreateWorkoutDTO } from '@/lib/api/workouts'
 import { exercisesApi } from '@/lib/api/exercises'
@@ -48,6 +48,7 @@ type WorkoutCategory = typeof CATEGORIES[number]
 
 export default function WorkoutsPage() {
   const queryClient = useQueryClient()
+
   const [page, setPage] = useState(1)
   const [limit] = useState(10)
   const [search, setSearch] = useState('')
@@ -100,11 +101,41 @@ export default function WorkoutsPage() {
   })
 
   // Fetch exercises for workout builder
-  const { data: exercisesData } = useQuery({
+  const { data: exercisesData, isLoading: exercisesLoading, error: exercisesError } = useQuery({
     queryKey: ['exercises-for-workout'],
-    queryFn: () => exercisesApi.getExercises({ limit: 100 }),
-    enabled: createDialogOpen,
+    queryFn: () => {
+      console.log('🔍 Fetching exercises for workout builder...')
+      return exercisesApi.getExercises({ limit: 100 })
+    },
+    enabled: true, // Always fetch for debugging
   })
+
+  const [displayCount, setDisplayCount] = useState(0)
+
+  // Update display count when exercises data changes
+  useEffect(() => {
+    const newCount = exercisesData?.data?.data?.exercises?.length || 0
+    console.log('🔄 Updating displayCount from', displayCount, 'to', newCount)
+    setDisplayCount(newCount)
+  }, [exercisesData?.data?.data?.exercises?.length])
+
+  // Debug exercises query
+  useEffect(() => {
+    console.log('🔄 Exercises query state changed:')
+    console.log('📊 Exercises data:', exercisesData)
+    console.log('⏳ Exercises loading:', exercisesLoading)
+    console.log('❌ Exercises error:', exercisesError)
+    console.log('🔓 Create dialog open:', createDialogOpen)
+
+    if (exercisesData) {
+      console.log('🔍 Exercises data structure:')
+      console.log('  - exercisesData:', exercisesData)
+      console.log('  - exercisesData.data:', exercisesData.data)
+      console.log('  - exercisesData.data?.data:', exercisesData.data?.data)
+      console.log('  - exercisesData.data?.data?.exercises:', exercisesData.data?.data?.exercises)
+      console.log('  - exercises count:', exercisesData.data?.data?.exercises?.length || 0)
+    }
+  }, [exercisesData, exercisesLoading, exercisesError, createDialogOpen])
 
   // Create mutation
   const createMutation = useMutation({
@@ -156,6 +187,53 @@ export default function WorkoutsPage() {
     })
     console.log('✅ Form reset completed')
   }
+
+  const workouts = workoutsData?.data?.data?.workouts || []
+  const pagination = workoutsData?.data?.data?.pagination
+  const availableExercises = exercisesData?.data?.data?.exercises || []
+
+  // Use useMemo to ensure re-renders when data changes
+  const availableExercisesCount = useMemo(() => {
+    const count = availableExercises.length;
+    console.log('🔢 useMemo availableExercisesCount:', count, 'exercisesData:', exercisesData);
+    return count;
+  }, [availableExercises.length, exercisesData]);
+
+  // Helper to compute exercise count robustly (handles various API shapes)
+  const getExerciseCount = (workout: any): number => {
+    if (!workout) return 0
+    // If exercises is an array
+    if (Array.isArray(workout.exercises)) return workout.exercises.length
+    // If exercises is a number
+    if (typeof workout.exercises === 'number') return workout.exercises
+    // Common alternative property names
+    if (typeof workout.exerciseCount === 'number') return workout.exerciseCount
+    if (typeof workout.exercisesCount === 'number') return workout.exercisesCount
+    // If exercises is an object with total
+    if (workout.exercises && typeof workout.exercises.total === 'number') return workout.exercises.total
+    // If there is an array of exerciseIds
+    if (Array.isArray(workout.exerciseIds)) return workout.exerciseIds.length
+    return 0
+  }
+
+  // Debug logging for data
+  console.log('📊 Workouts data:', workouts)
+  console.log('📄 Workouts pagination:', pagination)
+  console.log('🏋️ Available exercises:', availableExercises)
+  console.log('📈 Available exercises count:', availableExercises.length)
+  console.log('🔍 Raw exercisesData:', exercisesData)
+  console.log('🔍 exercisesData?.data:', exercisesData?.data)
+  console.log('🔍 exercisesData?.data?.data:', exercisesData?.data?.data)
+
+  // Auto-add default exercises removed: form starts empty until user selects exercises
+
+
+  // Ensure the create form is reset when opening the dialog so it starts empty
+  useEffect(() => {
+    if (createDialogOpen) {
+      resetForm()
+    }
+  }, [createDialogOpen])
 
   const handleCreateWorkout = () => {
     console.log('🚀 handleCreateWorkout called')
@@ -213,20 +291,10 @@ export default function WorkoutsPage() {
     })
   }
 
-  const workouts = workoutsData?.data?.data?.workouts || []
-  const pagination = workoutsData?.data?.data?.pagination
-  const availableExercises = exercisesData?.data?.data?.exercises || []
-
-  // Debug logging for data
-  console.log('📊 Workouts data:', workouts)
-  console.log('📄 Workouts pagination:', pagination)
-  console.log('🏋️ Available exercises:', availableExercises)
-  console.log('📈 Available exercises count:', availableExercises.length)
-
   return (
     <div className="space-y-6">
       {/* Header Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Workouts</CardTitle>
@@ -236,6 +304,24 @@ export default function WorkoutsPage() {
             <div className="text-2xl font-bold">{formatNumber(pagination?.total || 0)}</div>
             <p className="text-xs text-muted-foreground">
               Workout templates
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card key={`available-exercises-${displayCount}`}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Available Exercises</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {(() => {
+                console.log('🎯 Rendering with displayCount:', displayCount);
+                return formatNumber(displayCount);
+              })()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              For workout building
             </p>
           </CardContent>
         </Card>
@@ -530,7 +616,7 @@ export default function WorkoutsPage() {
                             {workout.category}
                           </Badge>
                         </TableCell>
-                        <TableCell>{workout.exercises?.length || 0} exercises</TableCell>
+                        <TableCell>{getExerciseCount(workout)} exercises</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(workout.createdAt).toLocaleDateString()}
                         </TableCell>
@@ -613,7 +699,7 @@ export default function WorkoutsPage() {
                 <p className="text-sm text-muted-foreground mt-1">{selectedWorkout.description}</p>
               </div>
               <div>
-                <Label>Exercises ({selectedWorkout.exercises?.length || 0})</Label>
+                <Label>Exercises ({getExerciseCount(selectedWorkout)})</Label>
                 <div className="space-y-2 mt-2">
                   {selectedWorkout.exercises?.map((ex: any, idx: number) => (
                     <div key={idx} className="p-3 border rounded-lg">
