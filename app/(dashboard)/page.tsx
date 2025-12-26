@@ -7,14 +7,20 @@ import { usersApi } from '@/lib/api/users'
 import { analyticsApi } from '@/lib/api/analytics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Users, Dumbbell, Activity, TrendingUp, ArrowUp, ArrowDown } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Users, Dumbbell, Activity, TrendingUp, ArrowUp, ArrowDown } from 'lucide-react' 
 import { formatNumber } from '@/lib/utils'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export default function DashboardPage() {
   // Fetch analytics overview
-  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+  const {
+    data: analyticsData,
+    isLoading: analyticsLoading,
+    isError: analyticsError,
+    error: analyticsErrorObj,
+  } = useQuery({
     queryKey: ['analytics-overview'],
     queryFn: () => analyticsApi.getOverview(),
   })
@@ -25,7 +31,42 @@ export default function DashboardPage() {
     queryFn: () => exercisesApi.getExerciseStats(),
   })
 
-  const stats = analyticsData?.data
+  // Fetch users & workouts lists (for fallback counts)
+  const { data: usersListData } = useQuery({
+    queryKey: ['users-list', { limit: 1 }],
+    queryFn: () => usersApi.getUsers({ limit: 1 }),
+  })
+
+  // Fetch count of active users (efficient: fetch 1 and read pagination.total)
+  const { data: usersActiveData } = useQuery({
+    queryKey: ['users-list', { status: 'active', limit: 1 }],
+    queryFn: () => usersApi.getUsers({ limit: 1, status: 'active' }),
+  })
+
+  const { data: workoutsListData } = useQuery({
+    queryKey: ['workouts-list', { limit: 1 }],
+    queryFn: () => workoutsApi.getWorkouts({ limit: 1 }),
+  })
+
+  // Support both shapes: either ApiResponse<T> ({ data: T }) or T directly
+  // Cast to `any` so TypeScript doesn't complain about the dual shapes returned by apiClient
+  const stats = ((analyticsData as any)?.data ?? analyticsData) as any
+
+  // Log for debugging (remove in production)
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('Dashboard: analyticsData', analyticsData)
+    // eslint-disable-next-line no-console
+    console.log('Dashboard: parsed stats', stats)
+    // eslint-disable-next-line no-console
+    console.log('Dashboard: exerciseStats', exerciseStats)
+    // eslint-disable-next-line no-console
+    console.log('Dashboard: usersListData', usersListData)
+    // eslint-disable-next-line no-console
+    console.log('Dashboard: usersActiveData', usersActiveData)
+    // eslint-disable-next-line no-console
+    console.log('Dashboard: workoutsListData', workoutsListData)
+  }
 
   const StatCard = ({ 
     title, 
@@ -71,11 +112,20 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* Show error if analytics failed to load */}
+      {analyticsError && (
+        <Alert>
+          <AlertDescription>
+            Failed to load analytics overview: {analyticsErrorObj?.message ?? 'Unknown error'}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Users"
-          value={stats?.totalUsers}
+          value={stats?.totalUsers ?? (usersListData?.data?.data?.pagination?.total ?? 0)}
           icon={Users}
           description="Registered users"
           trend={stats?.userGrowth && {
@@ -86,21 +136,21 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Active Users"
-          value={stats?.activeUsers}
+          value={stats?.activeUsers ?? (usersActiveData?.data?.data?.pagination?.total ?? usersListData?.data?.data?.pagination?.total ?? 0)}
           icon={TrendingUp}
           description="Active this month"
           isLoading={analyticsLoading}
         />
         <StatCard
           title="Total Exercises"
-          value={stats?.totalExercises || exerciseStats?.data?.totalExercises}
+          value={stats?.totalExercises ?? (exerciseStats?.data?.data?.totalExercises ?? (exerciseStats as any)?.totalExercises ?? 0)}
           icon={Dumbbell}
           description="In exercise library"
           isLoading={analyticsLoading}
         />
         <StatCard
           title="Total Workouts"
-          value={stats?.totalWorkouts}
+          value={stats?.totalWorkouts ?? (workoutsListData?.data?.data?.pagination?.total ?? 0)}
           icon={Activity}
           description="Workout templates"
           isLoading={analyticsLoading}
