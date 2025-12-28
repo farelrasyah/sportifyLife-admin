@@ -2,6 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '@/lib/api/analytics'
+import { usersApi } from '@/lib/api/users'
+import { workoutsApi } from '@/lib/api/workouts'
+import { exercisesApi } from '@/lib/api/exercises'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -34,7 +37,7 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 export default function AnalyticsPage() {
   // Fetch overview data
-  const { data: overviewData, isLoading: overviewLoading } = useQuery({
+  const { data: overviewData, isLoading: overviewLoading, isError: overviewError, error: overviewErrorObj } = useQuery({
     queryKey: ['analytics', 'overview'],
     queryFn: () => analyticsApi.getOverview(),
     retry: 1,
@@ -47,6 +50,27 @@ export default function AnalyticsPage() {
     retry: 1,
   })
 
+  // Fallback queries for real data - always fetch as backup
+  const { data: usersListData } = useQuery({
+    queryKey: ['users-list-fallback', { limit: 1 }],
+    queryFn: () => usersApi.getUsers({ limit: 1 }),
+  })
+
+  const { data: usersActiveData } = useQuery({
+    queryKey: ['users-active-fallback', { status: 'active', limit: 1 }],
+    queryFn: () => usersApi.getUsers({ limit: 1, status: 'active' }),
+  })
+
+  const { data: workoutsListData } = useQuery({
+    queryKey: ['workouts-list-fallback', { limit: 1 }],
+    queryFn: () => workoutsApi.getWorkouts({ limit: 1 }),
+  })
+
+  const { data: exerciseStats } = useQuery({
+    queryKey: ['exercise-stats-fallback'],
+    queryFn: () => exercisesApi.getExerciseStats(),
+  })
+
   const overview = overviewData?.data
   const charts = chartsData?.data
 
@@ -56,11 +80,23 @@ export default function AnalyticsPage() {
     users: item.count,
   })) || []
 
-  // Transform exercise distribution data
-  const exerciseDistData = charts?.exerciseDistribution?.map((item: any) => ({
-    name: item.bodyPart || 'Unknown',
-    value: item.count,
-  })) || []
+  // Transform exercise distribution data - use fallback from exercise stats
+  const exerciseDistData = charts?.exerciseDistribution && charts.exerciseDistribution.length > 0 
+    ? charts.exerciseDistribution.map((item: any) => ({
+        name: item.bodyPart || 'Unknown',
+        value: item.count,
+      }))
+    : exerciseStats?.data?.data?.bodyParts 
+      ? Object.entries(exerciseStats.data.data.bodyParts).map(([bodyPart, count]) => ({
+          name: bodyPart,
+          value: count as number,
+        }))
+      : (exerciseStats as any)?.bodyParts 
+        ? Object.entries((exerciseStats as any).bodyParts).map(([bodyPart, count]) => ({
+            name: bodyPart,
+            value: count as number,
+          }))
+        : []
 
   // Transform workout popularity data
   const workoutPopData = charts?.workoutPopularity?.map((item: any) => ({
@@ -70,6 +106,15 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Show error if analytics failed to load */}
+      {overviewError && (
+        <Alert>
+          <AlertDescription>
+            Failed to load analytics overview: {overviewErrorObj?.message ?? 'Unknown error'}. Using fallback data from individual APIs.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Overview Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -82,7 +127,7 @@ export default function AnalyticsPage() {
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{formatNumber(overview?.totalUsers || 0)}</div>
+                <div className="text-2xl font-bold">{formatNumber(overview?.totalUsers ?? (usersListData?.data?.data?.pagination?.total ?? 0))}</div>
                 <p className="text-xs text-muted-foreground">
                   Registered accounts
                 </p>
@@ -102,7 +147,7 @@ export default function AnalyticsPage() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-green-600">
-                  {formatNumber(overview?.activeUsers || 0)}
+                  {formatNumber(overview?.activeUsers ?? (usersActiveData?.data?.data?.pagination?.total ?? usersListData?.data?.data?.pagination?.total ?? 0))}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Last 30 days
@@ -122,7 +167,7 @@ export default function AnalyticsPage() {
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{formatNumber(overview?.totalExercises || 0)}</div>
+                <div className="text-2xl font-bold">{formatNumber(overview?.totalExercises ?? (exerciseStats?.data?.data?.totalExercises ?? (exerciseStats as any)?.totalExercises ?? 0))}</div>
                 <p className="text-xs text-muted-foreground">
                   Available exercises
                 </p>
@@ -141,7 +186,7 @@ export default function AnalyticsPage() {
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{formatNumber(overview?.totalWorkouts || 0)}</div>
+                <div className="text-2xl font-bold">{formatNumber(overview?.totalWorkouts ?? (workoutsListData?.data?.data?.pagination?.total ?? 0))}</div>
                 <p className="text-xs text-muted-foreground">
                   Created workouts
                 </p>
