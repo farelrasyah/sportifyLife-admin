@@ -20,9 +20,30 @@ export const API_ENDPOINTS = {
 
   // Users
   USERS: '/admin/users',
+  USER_CREATE: '/admin/users',
   USER_DETAIL: (id: string) => `/admin/users/${id}`,
   USER_UPDATE: (id: string) => `/admin/users/${id}`,
   USER_STATS: (id: string) => `/admin/users/${id}/stats`,
+  USER_DELETE: (id: string) => `/admin/users/${id}`,
+  USER_DELETE_PERMANENT: (id: string) => `/admin/users/${id}/permanent`,
+  USER_RESTORE: (id: string) => `/admin/users/${id}/restore`,
+  USER_RESET_PASSWORD: (id: string) => `/admin/users/${id}/reset-password`,
+  USER_SUSPEND: (id: string) => `/admin/users/${id}/suspend`,
+  USER_ACTIVATE: (id: string) => `/admin/users/${id}/activate`,
+  USER_ASSIGN_ROLES: (id: string) => `/admin/users/${id}/assign-roles`,
+  USERS_DELETED_LIST: '/admin/users/deleted/list',
+
+  // Roles & Permissions
+  ROLES: '/admin/roles',
+  ROLE_DETAIL: (id: string) => `/admin/roles/${id}`,
+  ROLE_CREATE: '/admin/roles',
+  ROLE_UPDATE: (id: string) => `/admin/roles/${id}`,
+  ROLE_DELETE: (id: string) => `/admin/roles/${id}`,
+  PERMISSIONS_ALL: '/admin/roles/permissions/all',
+  PERMISSIONS_GROUPED: '/admin/roles/permissions/grouped',
+  PERMISSION_CREATE: '/admin/roles/permissions',
+  PERMISSION_UPDATE: (id: string) => `/admin/roles/permissions/${id}`,
+  PERMISSION_DELETE: (id: string) => `/admin/roles/permissions/${id}`,
 
   // Analytics
   ANALYTICS_OVERVIEW: '/admin/analytics/overview',
