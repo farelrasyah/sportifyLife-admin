@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { 
   Search, 
   Dumbbell, 
@@ -22,7 +23,8 @@ import {
   BarChart3,
   Loader2,
   Eye,
-  X
+  X,
+  Pencil
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatNumber } from '@/lib/utils'
@@ -41,6 +43,8 @@ export default function ExercisesPage() {
   const [seedDialogOpen, setSeedDialogOpen] = useState(false)
   const [seedLimit, setSeedLimit] = useState('100')
   const [selectedExercise, setSelectedExercise] = useState<any>(null)
+  const [editingInstruction, setEditingInstruction] = useState<{ id?: string; text: string; stepNumber: number } | null>(null)
+  const [instructionText, setInstructionText] = useState('')
   
   // Fetch exercises
   const { data: exercisesData, isLoading, error, refetch } = useQuery({
@@ -76,6 +80,31 @@ export default function ExercisesPage() {
     },
   })
 
+  // Update instruction mutation
+  const updateInstructionMutation = useMutation({
+    mutationFn: ({ instructionId, text }: { instructionId: string; text: string }) => 
+      exercisesApi.updateInstruction(instructionId, { text }),
+    onSuccess: () => {
+      toast.success('Instruction updated successfully!')
+      setEditingInstruction(null)
+      setInstructionText('')
+      // Refetch exercise details to get updated data
+      if (selectedExercise) {
+        // Update the selected exercise locally
+        const updatedInstructions = selectedExercise.instructions.map((inst: any) =>
+          inst.id === editingInstruction?.id 
+            ? { ...inst, text: instructionText }
+            : inst
+        )
+        setSelectedExercise({ ...selectedExercise, instructions: updatedInstructions })
+      }
+      queryClient.invalidateQueries({ queryKey: ['exercises'] })
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update instruction')
+    },
+  })
+
   const handleSearch = (value: string) => {
     setSearch(value)
     setPage(1)
@@ -90,6 +119,41 @@ export default function ExercisesPage() {
     seedMutation.mutate(limit)
   }
 
+  const handleEditInstruction = (instruction: any) => {
+    console.log('🔍 Editing instruction:', instruction)
+    if (!instruction.id) {
+      toast.error('Cannot edit instruction: ID is missing from backend data')
+      console.error('❌ Instruction ID missing:', instruction)
+      return
+    }
+    setEditingInstruction(instruction)
+    setInstructionText(instruction.text)
+  }
+
+  const handleSaveInstruction = () => {
+    if (!editingInstruction) return
+    
+    if (!instructionText.trim()) {
+      toast.error('Instruction text cannot be empty')
+      return
+    }
+
+    if (!editingInstruction.id) {
+      toast.error('Cannot edit instruction without ID')
+      return
+    }
+
+    updateInstructionMutation.mutate({
+      instructionId: editingInstruction.id,
+      text: instructionText.trim()
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingInstruction(null)
+    setInstructionText('')
+  }
+
   const exercises = exercisesData?.data?.data?.exercises || []
   const pagination = exercisesData?.data?.data?.pagination
   const stats = statsData?.data?.data
@@ -100,6 +164,7 @@ export default function ExercisesPage() {
   console.log('📄 Pagination:', pagination)
   console.log('📈 Stats:', stats)
   console.log('🔍 Raw statsData:', statsData)
+  console.log('🔍 Selected exercise instructions:', selectedExercise?.instructions)
 
   return (
     <div className="space-y-6">
@@ -442,7 +507,11 @@ export default function ExercisesPage() {
       </Card>
 
       {/* Exercise Detail Dialog */}
-      <Dialog open={!!selectedExercise} onOpenChange={() => setSelectedExercise(null)}>
+      <Dialog open={!!selectedExercise} onOpenChange={() => {
+        setSelectedExercise(null)
+        setEditingInstruction(null)
+        setInstructionText('')
+      }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedExercise?.name}</DialogTitle>
@@ -501,13 +570,77 @@ export default function ExercisesPage() {
               {selectedExercise.instructions && selectedExercise.instructions.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium">Instructions</Label>
-                  <ol className="list-decimal list-inside space-y-2 mt-2">
-                    {selectedExercise.instructions.map((inst: any, idx: number) => (
-                      <li key={idx} className="text-sm text-muted-foreground">
-                        {inst.text || inst}
-                      </li>
-                    ))}
-                  </ol>
+                  <div className="space-y-3 mt-2">
+                    {selectedExercise.instructions.map((inst: any, idx: number) => {
+                      console.log(`📝 Instruction ${idx + 1}:`, inst)
+                      const instructionId = inst.id || `step-${inst.stepNumber || idx}`
+                      const isEditing = editingInstruction && 
+                        ((editingInstruction.id && editingInstruction.id === inst.id) || 
+                         (editingInstruction.stepNumber === inst.stepNumber))
+                      return (
+                      <div key={instructionId} className="flex gap-3 items-start">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-xs font-semibold text-primary">{inst.stepNumber || idx + 1}</span>
+                        </div>
+                        <div className="flex-1">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <Textarea
+                                value={instructionText}
+                                onChange={(e) => setInstructionText(e.target.value)}
+                                placeholder="Enter instruction text..."
+                                className="min-h-[80px]"
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  onClick={handleSaveInstruction}
+                                  disabled={updateInstructionMutation.isPending || !instructionText.trim()}
+                                >
+                                  {updateInstructionMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                      Saving...
+                                    </>
+                                  ) : (
+                                    'Save'
+                                  )}
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={handleCancelEdit}
+                                  disabled={updateInstructionMutation.isPending}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start gap-2 group">
+                              <p className="text-sm text-muted-foreground flex-1">
+                                {inst.text || inst}
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 shrink-0"
+                                onClick={() => {
+                                  console.log('🖱️ Edit button clicked for instruction:', inst)
+                                  handleEditInstruction(inst)
+                                }}
+                                title={inst.id ? "Edit instruction" : "Cannot edit - ID missing from backend (check console for details)"}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 

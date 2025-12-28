@@ -2,6 +2,12 @@ import { apiClient } from './client'
 import { API_ENDPOINTS } from '@/lib/config/constants'
 import type { PaginatedResponse } from '@/types/api'
 
+export interface ExerciseInstruction {
+  id: string
+  stepNumber: number
+  text: string
+}
+
 export interface Exercise {
   id: string
   name: string
@@ -13,11 +19,15 @@ export interface Exercise {
   imageUrl: string
   videoUrl?: string
   overview?: string
-  instructions?: Array<{ stepNumber: number; text: string }>
+  instructions?: ExerciseInstruction[]
   tips?: Array<{ text: string }>
   variations?: Array<{ text: string }>
   createdAt: string
   updatedAt: string
+}
+
+export interface UpdateInstructionRequest {
+  text: string
 }
 
 export interface ExerciseFilters {
@@ -70,6 +80,14 @@ export const exercisesApi = {
   getExerciseStats: async () => {
     const response = await apiClient.get(
       API_ENDPOINTS.EXERCISE_STATS
+    )
+    return response.data
+  },
+
+  updateInstruction: async (instructionId: string, data: UpdateInstructionRequest) => {
+    const response = await apiClient.put(
+      `/admin/exercises/instructions/${instructionId}`,
+      data
     )
     return response.data
   },
