@@ -91,12 +91,7 @@ export default function AnalyticsPage() {
           name: bodyPart,
           value: count as number,
         }))
-      : (exerciseStats as any)?.bodyParts 
-        ? Object.entries((exerciseStats as any).bodyParts).map(([bodyPart, count]) => ({
-            name: bodyPart,
-            value: count as number,
-          }))
-        : []
+      : []
 
   // Transform workout popularity data
   const workoutPopData = charts?.workoutPopularity?.map((item: any) => ({
@@ -167,7 +162,7 @@ export default function AnalyticsPage() {
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{formatNumber(overview?.totalExercises ?? (exerciseStats?.data?.data?.totalExercises ?? (exerciseStats as any)?.totalExercises ?? 0))}</div>
+                <div className="text-2xl font-bold">{formatNumber(overview?.totalExercises ?? (exerciseStats?.data?.data?.totalExercises ?? 0))}</div>
                 <p className="text-xs text-muted-foreground">
                   Available exercises
                 </p>

@@ -14,7 +14,7 @@ export const auditLogsApi = {
     if (filters?.startDate) params.append('startDate', filters.startDate)
     if (filters?.endDate) params.append('endDate', filters.endDate)
 
-    const response = await apiClient.get<PaginatedResponse<AuditLog>>(
+    const response = await apiClient.get(
       `${API_ENDPOINTS.AUDIT_LOGS}?${params.toString()}`
     )
     return response.data

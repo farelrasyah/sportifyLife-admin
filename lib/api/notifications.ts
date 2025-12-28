@@ -16,7 +16,7 @@ export const notificationsApi = {
     if (filters?.limit) params.append('limit', filters.limit.toString())
     if (filters?.status) params.append('status', filters.status)
 
-    const response = await apiClient.get<PaginatedResponse<Notification>>(
+    const response = await apiClient.get(
       `${API_ENDPOINTS.NOTIFICATIONS}?${params.toString()}`
     )
     return response.data
