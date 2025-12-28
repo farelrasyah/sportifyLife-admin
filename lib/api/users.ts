@@ -1,6 +1,10 @@
 import { apiClient } from './client'
 import { API_ENDPOINTS } from '@/lib/config/constants'
+import { mapCreateUserPayload } from '@/lib/utils/payload-mappers'
 import type { PaginatedResponse } from '@/types/api'
+
+// Re-export for convenience
+export { mapCreateUserPayload } from '@/lib/utils/payload-mappers'
 
 export interface User {
   id: string
@@ -57,6 +61,16 @@ export interface CreateUserPayload {
   password?: string
   role?: 'admin' | 'user'
   sendInvitation?: boolean
+}
+
+// Backend DTO interface (snake_case)
+export interface CreateUserByAdminDto {
+  email: string
+  password?: string
+  first_name: string
+  last_name: string
+  roles: string[]
+  send_invitation: boolean
 }
 
 export interface UpdateUserPayload {
@@ -119,25 +133,25 @@ export const usersApi = {
 
   // Create new user
   createUser: async (data: CreateUserPayload) => {
-    console.log('🔧 [API] createUser called with data:', {
+    console.log('🔧 [API] createUser called with frontend data:', {
       ...data,
       password: data.password ? '[HIDDEN]' : 'empty'
     })
+
+    // Map frontend payload to backend CreateUserDto format (camelCase)
+    const backendPayload = mapCreateUserPayload(data)
+
     console.log('🌐 [API] Making POST request to:', API_ENDPOINTS.USER_CREATE)
-    console.log('📊 [API] Request payload:', {
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      password: data.password ? '[HIDDEN]' : 'empty',
-      role: data.role,
-      sendInvitation: data.sendInvitation
+    console.log('📊 [API] Backend payload (CreateUserDto - camelCase):', {
+      ...backendPayload,
+      password: backendPayload.password ? '[HIDDEN]' : undefined
     })
 
     const startTime = Date.now()
     try {
       const response = await apiClient.post(
         API_ENDPOINTS.USER_CREATE,
-        data
+        backendPayload  // Send mapped payload to backend
       )
       const endTime = Date.now()
 
